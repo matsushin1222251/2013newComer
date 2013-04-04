@@ -388,14 +388,16 @@ Machine = Class.create(Sprite,{
       this.angle+=this.charge;
       if(this.charge==50){
         for(var i=0;i<6;i++){
+        for(var j=0;j<3;j++){
            dir=60*i+this.angle;
            nx=this.cx+30*Math.cos(dir*Math.PI/180);
            ny=this.cy+30*Math.sin(dir*Math.PI/180);
-           shot=new Shot(nx,ny,180+dir,5,this.pow*3,3);
+           shot=new Shot(nx,ny,180+dir,5,this.pow*3,1+j);
            shot.scaleX=shot.scaleY=0.3;
            shot.hp=150;
            shot.roll=5;
            shot.master=this.operatable;
+        }
         }
       }
       if(this.charge>=this.max_charge){
@@ -1232,6 +1234,13 @@ window.onload = function() {
             set.removeChild(left);
             Page=4;
             Next=false;
+            delete enemies;
+            delete e_icon;
+            delete e_name;
+            delete e_name;
+            delete check;
+            delete friends;
+            delete p_status;
             makeStage();
           }
         }
