@@ -573,8 +573,8 @@ Enemy = Class.create(Machine,{
         this.wait=400;
         this.move_lug=200;
         this.action=0;
-        if(rand(6)==0){this.action=2;}
-        else if(rand(5)==0){this.action=3;}
+        if(rand(4)==0){this.action=2;}
+        else if(rand(3)==0){this.action=3;}
       }
     },
     leavePlayer:function(){//自機から離れる
@@ -903,7 +903,7 @@ window.onload = function() {
     game.twitterRequest('account/verify_credentials');
     game.twitterRequest('statuses/friends');
     game.fps=64;
-    game.preload('message.png','next.png','bear1.png', 'shot.png', 'hp.png', 'direct.png','ring.png','target.png','check.png');
+    game.preload('vbg1.png','title.png','message.png','next.png','bear1.png', 'shot.png', 'hp.png', 'direct.png','ring.png','target.png','check.png');
     game.input.left=false;
     game.input.right=false;
     
@@ -936,17 +936,21 @@ window.onload = function() {
     game.onload = function() {
       //setStage();
       var Page=0,Next=false;
-      var title=new Sprite(236,48);
-      title.image=game.assets['next.png'];
-      title.y=312;
-      title.addEventListener('touchend',function(e){
+      var next=new Sprite(236,48);
+      next.image=game.assets['next.png'];
+      next.y=312;
+      next.addEventListener('touchend',function(e){
         Next=true;
         this.scaleX=0.25;
       });
-      title.addEventListener('enterframe',function(e){
+      next.addEventListener('enterframe',function(e){
         this.y=312+5*Math.sin(10*Frame/180*Math.PI);
         if(this.scaleX<1)this.scaleX+=0.1;
       });
+      var title=new Sprite(240,57);
+      title.image=game.assets['title.png'];
+      title.y=100;
+      set.addChild(next);
       set.addChild(title);
       var player=game.twitterAssets['account/verify_credentials'][0];
       var friends=new Array();
@@ -985,13 +989,16 @@ window.onload = function() {
       right.x=208;
       right.y=185+9;
       right.rotation=90;
-      right.frame=1;
+      right.frame=3;
       var left=new Sprite(32,32);
       left.image=game.assets['direct.png'];
       left.x=0;
       left.y=185+9;
       left.rotation=-90;
-      left.frame=1;
+      left.frame=3;
+      right.addEventListener('enterframe',function(e){
+        this.x=208+5*Math.sin(Frame/Math.PI);
+      });
       right.addEventListener('touchstart',function(e){
         if(Page==2){
           p.weapon++;
@@ -1003,6 +1010,9 @@ window.onload = function() {
           f_page++;
           if(f_page>Math.ceil(f_num/6))f_page=Math.ceil(f_num/6);
         }
+      });
+      left.addEventListener('enterframe',function(e){
+        this.x=-5*Math.sin(Frame/Math.PI);
       });
       left.addEventListener('touchstart',function(e){
         if(Page==2){
@@ -1071,6 +1081,7 @@ window.onload = function() {
         e_name.push(l);
         e_name.push(lv);
         check.push(c);
+        s.act=0;
         s.addEventListener('touchend',function(e){
           
             if(this.opacity<=1){
@@ -1086,18 +1097,43 @@ window.onload = function() {
             }
           
         });
+        s.addEventListener('enterframe',function(e){
+          if(Frame%36==0){
+            if(rand(10)==0){
+              this.act=1;
+            }else if(rand(9)==0){
+              this.act=2;
+            }else if(rand(8)==0){
+              this.act=3;
+            }else{
+              this.act=0;
+              this.rotation=0;
+              this.scaleY=size;
+            }
+          }
+          if(this.act==1){
+            this.rotate(10);
+            
+          }else if(this.act==2){
+            this.rotation=20*Math.sin(10*Frame/180*Math.PI);
+            
+          }else if(this.act==3){
+            this.scaleY=size+0.5*size*Math.sin(10*Frame/180*Math.PI);
+            
+          }
+        });
       }
       set.addEventListener('enterframe',function(e){
         if(Page==0){
-          Page=1;
           //タイトル
           if(Next==true){
             Page=1;
             Next=false;
+            set.removeChild(title);
           }
         }else if(Page==1){
           //遊び方
-          if(Next==true){
+          if(1){
             set.addChild(text1);
             set.addChild(text2);
             for(var i in p_status){
@@ -1160,7 +1196,7 @@ window.onload = function() {
               set.removeChild(e_icon[i]);
             }
             if(t_num==0){
-              if(rand(5)==0){
+              if(rand(2)==0){
                 target.push(fake);
               }else{
                 target.push(enemies[rand(enemies.length)]);
@@ -1233,7 +1269,11 @@ window.onload = function() {
       machines.push(p);
       game.popScene();
       stage.backgroundColor = 'black';
-      
+      bg=new Sprite(240,320);
+      bg.image=game.assets['vbg1.png'];
+      bg.y=40;bg.frame=rand(3);
+      if(target[0].weapon==6)bg.frame=3;
+      stage.addChild(bg);
       cursol=new Sprite(32,32);
       cursol.image=game.assets['target.png'];
       cursol.addEventListener('enterframe', function() {
