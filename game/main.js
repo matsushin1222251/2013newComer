@@ -1083,7 +1083,7 @@ window.onload = function() {
         check.push(c);
         s.act=0;
         s.addEventListener('touchend',function(e){
-          
+            
             if(this.opacity<=1){
               //target.push(enemies[i]);
               this.opacity=2+(t_num++);
@@ -1110,6 +1110,12 @@ window.onload = function() {
               this.rotation=0;
               this.scaleY=size;
             }
+            
+          }
+          if(this.opacity>1){
+              this.act=0;
+              this.rotation=0;
+              this.scaleY=size*5/3;
           }
           if(this.act==1){
             this.rotate(10);
