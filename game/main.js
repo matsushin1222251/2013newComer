@@ -148,7 +148,13 @@ Machine = Class.create(Sprite,{
         this.spd=0;
       }
     },
-    attack:function(X,Y){
+    moveTo:function(){
+      this.scaleX=this.size;
+      this.speedUp();
+      this.cx+=this.spd*Math.cos(this.angle*Math.PI/180);
+      this.cy+=this.spd*Math.sin(this.angle*Math.PI/180);
+    },
+    attack:function(){
       this.attackEffect();
       if(this.weapon==2){
         this.NormalShot();
@@ -385,25 +391,31 @@ Machine = Class.create(Sprite,{
     },
     CristalBeam:function(){
       this.max_charge=100;
+      if(this.charge==0){this.spin_dir=this.angle;}
       this.angle+=this.charge;
-      if(this.charge==50){
-        for(var i=0;i<6;i++){
-        for(var j=0;j<3;j++){
-           dir=60*i+this.angle;
-           nx=this.cx+30*Math.cos(dir*Math.PI/180);
-           ny=this.cy+30*Math.sin(dir*Math.PI/180);
-           shot=new Shot(nx,ny,180+dir,5,this.pow*3,1+j);
-           shot.scaleX=shot.scaleY=0.3;
-           shot.hp=150;
-           shot.roll=5;
-           shot.master=this.operatable;
-        }
+      if(this.charge>=10 && this.charge%5==0){
+        for(var i=0;i<2;i++){
+        dir=this.spin_dir+(1-2*i)*(this.charge-10);
+        r=40+rand(20);
+        nx=this.cx+r*Math.cos(dir*Math.PI/180);
+        ny=this.cy+r*Math.sin(dir*Math.PI/180);
+        shot=new Shot(nx,ny,dir,5,this.pow/2,0);
+        shot.scaleX=0.5;
+        shot.scaleY=0.1;
+        shot.hp=150;
+        shot.master=this.operatable;
         }
       }
       if(this.charge>=this.max_charge){
+        for(var i=-2;i<=2;i++){
+          dir=this.spin_dir+1*i;
+          shot=new Shot(this.cx,this.cy,dir,5,this.pow*3,5-Math.abs(i));
+          shot.scaleX=1;
+          shot.scaleY=0.2;
+          shot.master=this.operatable;
+        }
         this.attackLug=0;
         this.attackEnd();
-        this.opacity=1;
       }
     },
     
@@ -493,7 +505,7 @@ Player = Class.create(Machine,{
         this.spin_move();
       }else if(this.onAttack==true){
         this.spd=0;
-        this.attack(touchX,touchY);
+        this.attack();
         if(Lockon==true){
           this.directTo(Target.cx,Target.cy);
         }else{
@@ -539,53 +551,67 @@ Enemy = Class.create(Machine,{
       this.action=1;
       this.wait=100;
       this.move_lug=0;
+      this.waits=new Array(400,100,200,300,200);
     },
     setColor:function(){
       this.nameLabel.color='white';
     },
+    changeAction:function(num){
+      this.action=num;
+      this.wait=this.waits[num];
+    },
+    toPlayerAngle:function(){
+      var dir=Math.abs(this.angle-this.direct(machines[0].cx,machines[0].cy)*180/Math.PI);
+      return dir;
+    },
+    fromPlayerAngle:function(){
+      var dir=Math.abs(machines[0].angle-machines[0].direct(this.cx,this.cy)*180/Math.PI);
+      return dir;
+    },
     waitAttack:function(){
       //this.directTo(machines[0].cx,machines[0].cy);
       this.attackEffect();
-      this.wait-=1+this.accel+this.roll;
-      if(this.wait>200)
+      if(this.wait>200){
         this.directTo(machines[0].cx,machines[0].cy);
+      }
+      if(this.level>30){//攻撃キャンセル
+        if(this.fromPlayerAngle()<30 && machines[0].onAttack==true){
+          this.attackEnd();
+          this.changeAction(3);
+        }
+      }
       if(this.wait<=0){
-        this.move_lug=100;
         this.onAttack=true;
         this.charge=0;
-        this.wait=400;
-        this.action=1;
-        if(rand(10)==0){
-          this.action=4;
-          this.move_lug=300;
-        }
+        this.changeAction(1);
+        //if(rand(3)==0)this.changeAction(2);
       }
     },
     moveToPlayer:function(){//自機への接近
-      var dir=Math.abs(this.angle-this.direct(machines[0].cx,machines[0].cy)*180/Math.PI);
-      if(dir>90){
-        this.directTo(machines[0].cx,machines[0].cy);
-      }else{
-        this.directTo(machines[0].cx,machines[0].cy);
-        nx=this.cx+30*Math.cos((this.angle)*Math.PI/180);
-        ny=this.cy+30*Math.sin((this.angle)*Math.PI/180);
-        this.move(nx,ny);
+      var dir=this.toPlayerAngle();
+      this.directTo(machines[0].cx,machines[0].cy);
+      if(dir<=90){
+        this.moveTo();
+      }
+      if(this.dist(machines[0].cx,machines[0].cy)<150){
+        if(this.level>20){//攻撃キャンセル
+          if(this.fromPlayerAngle()<20 && machines[0].onAttack==true){
+            this.changeAction(3);
+          }
+        }
       }
       if(this.dist(machines[0].cx,machines[0].cy)<100){
-        this.wait=400;
-        this.move_lug=200;
-        this.action=0;
-        if(rand(4)==0){this.action=2;}
-        else if(rand(3)==0){this.action=3;}
+        this.changeAction(0);
       }
     },
     leavePlayer:function(){//自機から離れる
-      var dir=Math.abs(this.angle-this.direct(machines[0].cx,machines[0].cy)*180/Math.PI);
-      if(this.dist(machines[0].cx,machines[0].cy)<250 && this.move_lug>0){
-        this.angle=this.direct(machines[0].cx,machines[0].cy)*180/Math.PI+180;
-        nx=this.cx+30*Math.cos((this.angle)*Math.PI/180);
-        ny=this.cy+30*Math.sin((this.angle)*Math.PI/180);
-        this.move(nx,ny);
+      var dir=this.toPlayerAngle();
+      if(this.dist(machines[0].cx,machines[0].cy)<200 && this.wait>0){
+        if(this.toPlayerAngle()<150){
+          ang=this.direct(machines[0].cx,machines[0].cy)*180/Math.PI+180;
+          this.directTo(ang);
+        }
+        this.moveTo();
       }
       else{
         if(dir>10){
@@ -598,13 +624,12 @@ Enemy = Class.create(Machine,{
       }
     },
     arroundPlayer:function(){//自機の後ろに回り込む
-      cx=machines[0].cx+100*Math.cos((machines[0].angle+90)*Math.PI/180);
-      cy=machines[0].cy+100*Math.sin((machines[0].angle+90)*Math.PI/180);
+      dis=this.dist(machines[0].cx,machines[0].cy)*2;
+      cx=machines[0].cx+dis*Math.cos((machines[0].angle+90)*Math.PI/180);
+      cy=machines[0].cy+dis*Math.sin((machines[0].angle+90)*Math.PI/180);
       this.directTo(cx,cy);
-      nx=this.cx+30*Math.cos((this.angle)*Math.PI/180);
-      ny=this.cy+30*Math.sin((this.angle)*Math.PI/180);
-      this.move(nx,ny);
-      if(this.move_lug<=0){
+      this.moveTo();
+      if(this.wait<=0){
         this.action=0;
         this.wait=400;
         this.move_lug=70;
@@ -629,12 +654,13 @@ Enemy = Class.create(Machine,{
         if(this.died==true)Score+=this.exp;
       }else if(this.onSpin==true){
         this.spin_move();
+        this.changeAction(1);
       }else if(this.onAttack==true){
         this.spd=0;
-        this.attack(touchX,touchY);
+        this.attack();
       }else{
         /*独自モーション*/
-        this.move_lug-=(this.accel+this.roll)/2;
+        this.wait-=1+(0.5*this.accel+this.roll);
         if(this.action==0){
           this.waitAttack();
         }else if(this.action==1){
@@ -702,6 +728,12 @@ Shot=Class.create(Sprite,{
           machines[0].damage(this.power);
           machines[0].spin_start(2,5,machines[0].direct(this.cx,this.cy)+Math.PI,0);
           this.died=true;
+        }
+      }
+      for(var i in shots){
+        if(shots[i].master!=this.master && this.dist(shots[i])<2){
+          this.died=true;
+          shots[i].died=true;
         }
       }
     },
@@ -897,8 +929,6 @@ superShot=Class.create(Shot,{
       }
     }
 });
-
-
 
 window.onload = function() {
     game = new Core(240,360);
@@ -1326,6 +1356,7 @@ window.onload = function() {
       playerName.color='white';
       playerName.addEventListener('enterframe', function(e) {
         this.text=machines[0].name+" Lv"+machines[0].level+" "+Math.ceil(machines[0].hp)+"/"+Math.ceil(machines[0].max_hp);
+        
       });
       scoreLabel=new Label();
       scoreLabel.x=10;scoreLabel.y=320;
